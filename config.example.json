@@ -1,0 +1,100 @@
+{
+  "config_version": 1,
+  "purifier": {
+    "ip": "",
+    "token": "",
+    "timeout_s": 4,
+    "level_command": "set_level_favorite",
+    "silent": true,
+    "wifi_profile": ""
+  },
+  "control": {
+    "interval_s": 10,
+    "min_level": 0,
+    "max_level": 16,
+    "deadband": 2,
+    "min_command_gap_s": 30,
+    "ema_alpha": 0.35,
+    "idle_release_min": 10,
+    "idle_action": "auto",
+    "active_hours": [],
+    "restore_on_exit": true
+  },
+  "sensors": [
+    {
+      "name": "cpu",
+      "kind": "lhm",
+      "match": [
+        "CPU Package",
+        "Core Max",
+        "Core (Tctl",
+        "CPU Total"
+      ],
+      "curve": [
+        [
+          52,
+          0
+        ],
+        [
+          60,
+          2
+        ],
+        [
+          68,
+          4
+        ],
+        [
+          76,
+          7
+        ],
+        [
+          83,
+          10
+        ],
+        [
+          88,
+          13
+        ],
+        [
+          94,
+          16
+        ]
+      ]
+    },
+    {
+      "name": "gpu",
+      "kind": "nvidia",
+      "match": [],
+      "curve": [
+        [
+          45,
+          0
+        ],
+        [
+          52,
+          2
+        ],
+        [
+          58,
+          4
+        ],
+        [
+          64,
+          7
+        ],
+        [
+          70,
+          10
+        ],
+        [
+          76,
+          13
+        ],
+        [
+          82,
+          16
+        ]
+      ]
+    }
+  ]
+}

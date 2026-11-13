@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  selftest:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: python -m pip install ruff
+
+      - name: Lint (errors only)
+        run: ruff check --select F,E9 .
+
+      - name: Self test (AES vectors + fake purifier, no hardware needed)
+        run: python bridge.py selftest

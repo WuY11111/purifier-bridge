@@ -1,0 +1,23 @@
+# ---- 本机运行产物（不要提交）----
+config.json
+state.json
+icon.ico
+logs/
+*.log
+
+# ---- 打包产物 ----
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+*.lnk
+
+# ---- 第三方二进制（LHM 体积大且是 MPL 许可，请让用户自己下载）----
+tools/LibreHardwareMonitor/
+tools/_dl/
+
+# ---- 截图里的个人内容（自己留档用，别上传）----
+docs/lhm_*.png
+docs/tray*.png
+docs/shot*.png
