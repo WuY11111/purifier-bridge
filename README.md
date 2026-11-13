@@ -5,6 +5,10 @@
 >
 > Zero third-party dependencies · Windows 10/11 · 需要一台支持 miIO 协议的小米空气净化器（如空气净化器 2）
 
+[![下载](https://img.shields.io/github/v/release/WuY11111/purifier-bridge?label=%E4%B8%8B%E8%BD%BD&color=4f8cff)](https://github.com/WuY11111/purifier-bridge/releases/latest)
+[![License](https://img.shields.io/github/license/WuY11111/purifier-bridge?color=green)](LICENSE)
+[![CI](https://github.com/WuY11111/purifier-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/WuY11111/purifier-bridge/actions/workflows/ci.yml)
+
 ![界面](docs/screenshot.jpg)
 
 ```
