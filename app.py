@@ -1141,10 +1141,11 @@ class App(tk.Tk):
         if "value" in gpu:
             parts.append("GPU %.0f℃" % gpu["value"])
         if dev.get("connected"):
-            parts.append("%s档" % dev.get("favorite_level"))
-            mode = dev.get("mode") or ""
-            if mode:
-                parts.append(str(mode))
+            mode = (dev.get("mode") or "").lower()
+            if mode == "favorite":
+                parts.append("%s档" % dev.get("favorite_level"))
+            else:
+                parts.append("%s模式" % {"auto": "自动", "silent": "睡眠", "idle": "待机"}.get(mode, mode or "?"))
         parts.append("运行中" if self.engine.control_on else "已暂停")
         return "散热管家 · " + " · ".join(p for p in parts if p)
 
@@ -1192,9 +1193,15 @@ class App(tk.Tk):
         if dev.get("connected"):
             lvl = dev.get("favorite_level")
             rpm = dev.get("motor1_speed")
-            self.lbl_level.configure(
-                text="当前 %s 档 · %s rpm · %s" % (lvl, rpm, dev.get("mode")),
-                fg=FG if running else MUTED)
+            mode = (dev.get("mode") or "").lower()
+            if mode == "favorite":
+                text = "当前 %s 档 · %s rpm · 最爱模式" % (lvl, rpm)
+            else:
+                # auto / silent / idle 模式下 favorite_level 只是记忆值，不是实际风速
+                text = "%s模式 · %s rpm（记忆 %s 档）" % (
+                    {"auto": "自动", "silent": "睡眠", "idle": "待机", "manual": "手动"}.get(mode, mode or "未知"),
+                    rpm, lvl)
+            self.lbl_level.configure(text=text, fg=FG if running else MUTED)
             self.lbl_extra.configure(
                 text="AQI %s · 机内温度 %.1f℃" % (dev.get("aqi"),
                                                 (dev.get("temp_dec") or 0) / 10))
