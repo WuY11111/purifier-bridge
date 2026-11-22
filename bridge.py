@@ -270,6 +270,17 @@ class Controller:
         return out
 
     # -- 执行 -------------------------------------------------------------
+    def _set_level(self, level: int) -> None:
+        """设置最爱档位；主指令失败时自动换另一种指令。"""
+        try:
+            self.device.set_favorite_level(level, self.level_command)
+        except miio_lan.MiioError as ex:
+            alt = "set_level" if self.level_command == "set_level_favorite" else "set_level_favorite"
+            LOG.warning("%s 失败（%s），换 %s 再试", self.level_command, ex, alt)
+            self.device.set_favorite_level(level, alt)
+            self.level_command = alt
+            self.cfg["purifier"]["level_command"] = self.level_command
+
     def _push_level(self, level: int) -> None:
         if self.device is None:
             raise SystemExit("没有可用设备，无法下发档位")
@@ -283,16 +294,15 @@ class Controller:
             LOG.info("净化器处于关机状态，先开机")
             self.device.set_power(True)
         if st.get("mode") != "favorite":
+            # 关键：切到「最爱」时设备会恢复它记忆的档位（可能是 8/10 档）。
+            # 先在 auto 模式下把记忆档位写成目标值，再切模式，就不会先狂吹几秒。
+            try:
+                self._set_level(level)
+            except miio_lan.MiioError as ex:
+                LOG.debug("切模式前预写档位失败（不影响后续）：%s", ex)
             LOG.info("切到最爱模式（当前 %s）", st.get("mode"))
             self.device.set_mode("favorite")
-        try:
-            self.device.set_favorite_level(level, self.level_command)
-        except miio_lan.MiioError as ex:
-            alt = "set_level" if self.level_command == "set_level_favorite" else "set_level_favorite"
-            LOG.warning("%s 失败（%s），换 %s 再试", self.level_command, ex, alt)
-            self.device.set_favorite_level(level, alt)
-            self.level_command = alt
-            self.cfg["purifier"]["level_command"] = self.level_command
+        self._set_level(level)
         self.last_cmd_ts = time.time()
         self.last_level = level
         self._released = False

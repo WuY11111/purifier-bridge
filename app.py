@@ -355,11 +355,22 @@ class Engine:
             self._rebuild()
         if self.ctrl is None:
             raise RuntimeError(self.ctrl_error or "没有可用的净化器配置")
-        # 先把设备接管过来（开机 + 切最爱模式 + 用当前档位），否则它会一直待在 auto
+        # 先把设备接管过来（开机 + 切最爱模式）
+        # 注意：必须直接设成「按当前温度算出的目标档位」，不能用设备记忆的档位——
+        # 记忆档可能是 10 档，接管瞬间会全速吹几十秒，用户会以为"卡在 10 档"。
         try:
-            st = self.ctrl.device.status() if self.ctrl.device else {}
-            level = int(st.get("favorite_level") or 0)
-            self.ctrl._push_level(level)
+            level = None
+            samples = self.ctrl.sample()
+            if samples:
+                raw = max(s[3] for s in samples)
+                lo = int(self.ctrl.control["min_level"])
+                hi = int(self.ctrl.control["max_level"])
+                level = int(round(min(max(raw, lo), hi)))
+            if level is None:
+                st = self.ctrl.device.status() if self.ctrl.device else {}
+                level = int(st.get("favorite_level") or 0)
+            self.ctrl._push_level(int(level))
+            LOG.info("接管设备，直接设到 %d 档", level)
             self.refresh_device_locked(self.ctrl)
         except Exception as ex:
             LOG.warning("接管设备失败（继续尝试控制）：%s", ex)
