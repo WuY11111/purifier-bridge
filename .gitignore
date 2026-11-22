@@ -21,3 +21,7 @@ tools/_dl/
 docs/lhm_*.png
 docs/tray*.png
 docs/shot*.png
+
+# ---- 软著申请材料（个人，不公开）----
+docs/软著-*
+docs/zoom_*.png
