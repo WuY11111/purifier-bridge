@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 CONFIG_VERSION = 1
 
@@ -56,6 +56,38 @@ def _blank() -> Dict[str, Any]:
     return json.loads(json.dumps(DEFAULT_CONFIG))
 
 
+def _clean_curve(raw: Any, default: List[List[float]]) -> List[List[float]]:
+    """曲线必须是至少两个 (温度, 档位) 点；坏了就退回默认，避免启动即崩。"""
+    try:
+        pts = [[float(p[0]), float(p[1])] for p in raw]
+    except (TypeError, ValueError, IndexError, KeyError):
+        return json.loads(json.dumps(default))
+    pts = [[max(0.0, min(120.0, x)), max(0.0, min(17.0, y))] for x, y in pts]
+    if len(pts) < 2:
+        return json.loads(json.dumps(default))
+    return pts
+
+
+def _clean_sensors(raw: Any) -> List[Dict[str, Any]]:
+    defaults = DEFAULT_CONFIG["sensors"]
+    if not isinstance(raw, list) or not raw:
+        return json.loads(json.dumps(defaults))
+    out: List[Dict[str, Any]] = []
+    for i, item in enumerate(raw):
+        base = json.loads(json.dumps(defaults[i] if i < len(defaults) else defaults[-1]))
+        if isinstance(item, dict):
+            base.update(item)
+        base["name"] = str(base.get("name") or base.get("kind") or "sensor%d" % i)
+        kind = str(base.get("kind") or "lhm")
+        base["kind"] = kind
+        fallback = defaults[i]["curve"] if i < len(defaults) else defaults[-1]["curve"]
+        base["curve"] = _clean_curve(base.get("curve"), fallback)
+        if not isinstance(base.get("match"), list):
+            base["match"] = list(defaults[-1]["match"]) if kind == "lhm" else []
+        out.append(base)
+    return out
+
+
 def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     """补默认值 + 收敛类型/范围；不认识的字段原样保留。"""
     cfg = _blank()
@@ -63,8 +95,7 @@ def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
                 if k not in ("purifier", "control", "sensors")})
     cfg["purifier"].update(raw.get("purifier") or {})
     cfg["control"].update(raw.get("control") or {})
-    if raw.get("sensors"):
-        cfg["sensors"] = raw["sensors"]
+    cfg["sensors"] = _clean_sensors(raw.get("sensors"))
 
     c = cfg["control"]
     try:
@@ -101,8 +132,21 @@ def load_config(path: str, create: bool = True) -> Dict[str, Any]:
             raise SystemExit("找不到配置文件：%s" % path)
         save_config(_blank(), path)
         return _blank()
-    with open(path, "r", encoding="utf-8-sig") as fh:
-        raw = json.load(fh)
+    try:
+        with open(path, "r", encoding="utf-8-sig") as fh:
+            raw = json.load(fh)
+        if not isinstance(raw, dict):
+            raise ValueError("配置文件顶层不是对象")
+    except (OSError, ValueError, json.JSONDecodeError):
+        # 断电写坏 / 手工改错：备份坏文件后用默认值启动，别让软件打不开
+        import time as _time
+        bad = "%s.bad-%s" % (path, _time.strftime("%Y%m%d%H%M%S"))
+        try:
+            os.replace(path, bad)
+        except OSError:
+            pass
+        save_config(_blank(), path)
+        return _blank()
     return normalize(raw)
 
 

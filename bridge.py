@@ -54,6 +54,8 @@ def format_value(value: float, source: str) -> str:
 
 def curve_value(points: List[List[float]], x: float) -> float:
     """折线插值：温度 x 落在哪一段就按哪一段线性映射到档位。"""
+    if not points:
+        return 0.0
     pts = sorted((float(a), float(b)) for a, b in points)
     if len(pts) == 1:
         return pts[0][1]
@@ -381,6 +383,11 @@ class Controller:
                      "samples": [{"name": n, "source": mn, "temp": round(t, 1),
                                   "curve_level": round(l, 2)} for n, mn, t, l in samples],
                      "target": target}
+
+        if self._released and target <= lo:
+            # 已经交还设备，且温度仍在曲线下限以下：保持交还状态，
+            # 不要因为"设备记忆档位(比如 10)"和目标的差值又把设备抢回来。
+            return self.last_level
 
         if self.last_level is None:
             if self.device is None:
